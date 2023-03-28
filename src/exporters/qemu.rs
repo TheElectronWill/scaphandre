@@ -13,14 +13,14 @@ pub struct QemuExporter {
 }
 
 impl Exporter for QemuExporter {
-    /// Runs iteration() in a loop.
-    fn run(&mut self, _parameters: clap::ArgMatches) {
+    /// Runs [iterate()] in a loop.
+    fn run(&mut self) {
         info!("Starting qemu exporter");
         let path = "/var/lib/libvirt/scaphandre";
         let cleaner_step = 120;
         let mut timer = time::Duration::from_secs(cleaner_step);
         loop {
-            self.iteration(String::from(path));
+            self.iterate(String::from(path));
             let step = time::Duration::from_secs(5);
             thread::sleep(step);
             if timer - step > time::Duration::from_millis(0) {
@@ -34,22 +34,25 @@ impl Exporter for QemuExporter {
         }
     }
 
-    fn get_options() -> Vec<clap::Arg> {
-        Vec::new()
+    fn kind(&self) -> &str {
+        "qemu"
     }
 }
 
 impl QemuExporter {
     /// Instantiates and returns a new QemuExporter
-    pub fn new(mut sensor: Box<dyn Sensor>) -> QemuExporter {
-        let some_topology = *sensor.get_topology();
+    pub fn new(sensor: &dyn Sensor) -> QemuExporter {
+        // We don't need a MetricGenerator for this exporter, because it "justs"
+        // puts the metrics in files in the same way as the powercap kernel module.
         QemuExporter {
-            topology: some_topology.unwrap(),
+            topology: sensor
+                .get_topology()
+                .expect("sensor topology should be available"),
         }
     }
 
-    /// Performs processing of metrics, using self.topology
-    pub fn iteration(&mut self, path: String) {
+    /// Processes the metrics of `self.topology` and exposes them at the given `path`.
+    pub fn iterate(&mut self, path: String) {
         trace!("path: {}", path);
         self.topology.refresh();
         let topo_uj_diff = self.topology.get_records_diff();
@@ -108,7 +111,7 @@ impl QemuExporter {
                 return String::from(splitted.next().unwrap().split(',').next().unwrap());
             }
         }
-        String::from("")
+        String::from("") // TODO return Option<String> None instead, and stop at line 76 (it won't work with {path}//intel-rapl)
     }
 
     /// Either creates an energy_uj file (as the ones managed by powercap kernel module)

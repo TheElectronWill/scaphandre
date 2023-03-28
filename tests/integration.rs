@@ -9,7 +9,7 @@ use std::fs::{create_dir, read_dir};
 #[test]
 fn exporter_qemu() {
     let sensor = PowercapRAPLSensor::new(1, 1, false);
-    let mut exporter = QemuExporter::new(Box::new(sensor));
+    let mut exporter = QemuExporter::new(&sensor);
     // Create integration_tests directory if it does not exist
     let curdir = current_dir().unwrap();
     let path = curdir.join("integration_tests");
@@ -18,7 +18,7 @@ fn exporter_qemu() {
     }
     // Convert to std::string::String
     let path = path.into_os_string().to_str().unwrap().to_string();
-    exporter.iteration(path.clone());
+    exporter.iterate(path.clone());
     let content = read_dir(path);
     assert_eq!(content.is_ok(), true);
 }
