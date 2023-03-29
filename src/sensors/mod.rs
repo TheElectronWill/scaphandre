@@ -2,13 +2,6 @@
 //!
 //! `Sensor` is the root for all sensors. It defines the [Sensor] trait
 //! needed to implement a sensor.
-
-#[cfg(not(target_os = "linux"))]
-pub mod msr_rapl;
-#[cfg(target_os = "linux")]
-pub mod powercap_rapl;
-pub mod units;
-pub mod utils;
 #[cfg(target_os = "linux")]
 use procfs::{CpuInfo, CpuTime, KernelStats};
 use std::{collections::HashMap, error::Error, fmt, mem::size_of_val, str, time::Duration};
@@ -16,6 +9,14 @@ use std::{collections::HashMap, error::Error, fmt, mem::size_of_val, str, time::
 use sysinfo::{CpuExt, Pid, System, SystemExt};
 use sysinfo::{DiskExt, DiskType};
 use utils::{current_system_time_since_epoch, IProcess, ProcessTracker};
+
+#[cfg(not(target_os = "linux"))]
+pub mod msr_rapl;
+#[cfg(target_os = "linux")]
+pub mod powercap_rapl;
+pub mod units;
+pub mod utils;
+pub mod nvml;
 
 // !!!!!!!!!!!!!!!!! Sensor !!!!!!!!!!!!!!!!!!!!!!!
 /// Sensor trait, the Sensor API.
@@ -50,7 +51,7 @@ pub struct Topology {
     /// CPU usage stats buffer
     pub stat_buffer: Vec<CPUStat>,
     /// Measurements of energy usage, stored as Record instances
-    pub record_buffer: Vec<Record>,
+    pub record_buffer: Vec<Record>, // TODO optimize this
     /// Maximum size in memory for the recor_buffer
     pub buffer_max_kbytes: u16,
     /// Sorted list of all domains names

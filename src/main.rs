@@ -79,16 +79,24 @@ enum ExporterChoice {
 }
 
 fn main() {
-    let cli = Cli::parse();
-    loggerv::init_with_verbosity(cli.verbose.into()).expect("unable to initialize the logger");
-
-    let sensor = build_sensor(&cli);
-    let mut exporter = build_exporter(cli.exporter, &sensor);
-    if !cli.no_header {
-        print_scaphandre_header(exporter.kind());
+    let nvml = nvml_wrapper::Nvml::init().expect("failed to init nvml, please check your driver");
+    let mut nvidia = scaphandre::sensors::nvml::NvmlTopology::new(&nvml).expect("something was wrong");
+    loop {
+        let m = nvidia.fetch_latest_measurement().expect("where are my measurements ?!");
+        println!("Got: {m:?}");
+        std::thread::sleep_ms(1000);
     }
+    println!(":-)");
+    // let cli = Cli::parse();
+    // loggerv::init_with_verbosity(cli.verbose.into()).expect("unable to initialize the logger");
 
-    exporter.run();
+    // let sensor = build_sensor(&cli);
+    // let mut exporter = build_exporter(cli.exporter, &sensor);
+    // if !cli.no_header {
+    //     print_scaphandre_header(exporter.kind());
+    // }
+
+    // exporter.run();
 }
 
 fn build_exporter(choice: ExporterChoice, sensor: &dyn Sensor) -> Box<dyn exporters::Exporter> {
